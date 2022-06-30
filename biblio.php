@@ -3,26 +3,19 @@
 require_once 'connec.php';
 $pdo = new \PDO(DSN, USER, PASS);
 $books = array();
-displayListOfBooks();
 
-function displayListOfBooks() {
-    global $pdo;
-    global $books;
-    $query = "SELECT book.*, author.last_name, author.first_name FROM book left join author ON book.author_id = author.id ORDER BY book.title ASC";
+if(isset($_GET['search']) AND !empty($_GET['search'])) {
+    $search = $_GET['search'];
+    $sth = $pdo->prepare("SELECT book.*, author.last_name, author.first_name FROM book LEFT JOIN author ON book.author_id = author.id WHERE title LIKE :search LEFT JOIN format_bind ON book.id = format_bind.book_id ORDER BY book.title ASC");
+    $sth->bindValue('search', '%'.$search.'%', PDO::PARAM_STR);
+    $sth->execute();
+    $books = $sth->fetchAll();
+} else {
+    $query = "SELECT book.*, author.last_name, author.first_name, format_bind.book_id, format_bind.format_id FROM book LEFT JOIN author ON book.author_id = author.id LEFT JOIN format_bind ON book.id = format_bind.book_id ORDER BY book.title ASC";
     $statement = $pdo->query($query);
     $books = $statement->fetchAll();
+    var_dump($books);
 }
-
-if(isset($_GET['q']) AND !empty($_GET['q'])) {
-    global $pdo;
-    $q = htmlspecialchars($_GET['q']);
-    $query = "SELECT book.*, author.last_name, author.first_name FROM book left join author ON book.author_id = author.id WHERE title LIKE "%".$q."%" ORDER BY book.title ASC";
-    $statement = $pdo->query($query);
-    $books = $statement->fetchAll();
-    /*if($articles->rowCount() == 0) {
-       $articles = $bdd->query('SELECT titre FROM articles WHERE CONCAT(titre, contenu) LIKE "%'.$q.'%" ORDER BY id DESC');
-    }*/
- }
 
 ?>
 
@@ -50,7 +43,7 @@ if(isset($_GET['q']) AND !empty($_GET['q'])) {
     <br>
     <div style="padding: 10px;">
         <form method="GET">
-            <input type="search" name="q" placeholder="Recherche..." />
+            <input type="search" name="search" placeholder="Recherche..." />
             <input type="submit" value="Valider" />
         </form>
     </div>
